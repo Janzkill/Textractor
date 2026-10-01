@@ -1,0 +1,47 @@
+name: Build Textractor (dark)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            platform: x64
+            qtarch: win64_msvc2017_64
+          - arch: x86
+            platform: Win32
+            qtarch: win32_msvc2017
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Qt 5.13.2
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.13.2'
+          host: windows
+          target: desktop
+          arch: ${{ matrix.qtarch }}
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A ${{ matrix.platform }} `
+            -DQt5_DIR="$env:QT_ROOT_DIR/lib/cmake/Qt5" `
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo -DVERSION=""
+
+      - name: Build
+        run: cmake --build build --config RelWithDebInfo
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Textractor-dark-${{ matrix.arch }}
+          path: builds/RelWithDebInfo_${{ matrix.arch }}
